@@ -195,14 +195,15 @@ const getActivityById = async (activityId, user) => {
     throw new Error("Activity not found");
   }
 
-  if (
-    user.role === "SALES_EXECUTIVE" &&
-    activity.assignedTo._id.toString() !== user._id.toString()
-  ) {
-    throw new Error(
-      "You are not authorized to access this activity"
-    );
-  }
+if (
+  user.role === "SALES_EXECUTIVE" &&
+  (!activity.assignedTo ||
+    activity.assignedTo._id.toString() !== user._id.toString())
+) {
+  throw new Error(
+    "You are not authorized to access this activity"
+  );
+}
 
   return activity;
 };

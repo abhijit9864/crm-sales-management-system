@@ -1,4 +1,4 @@
-    import {
+import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
@@ -11,7 +11,9 @@
   Users,
   X,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+
+import { logoutUser } from "../services/api";
 
 const navigation = [
   {
@@ -61,7 +63,31 @@ const navigation = [
   },
 ];
 
-function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
+function Sidebar({
+  collapsed,
+  mobileOpen,
+  onClose,
+  onToggle,
+}) {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Remove locally stored user information.
+      localStorage.removeItem("user");
+
+      // Close mobile sidebar if open.
+      onClose?.();
+
+      // Redirect to login.
+      navigate("/login", { replace: true });
+    }
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -79,7 +105,11 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
           fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#EDEEF0]
           bg-white transition-all duration-300
           ${collapsed ? "w-[80px]" : "w-[260px]"}
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${
+            mobileOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+          }
         `}
       >
         {/* Logo */}
@@ -98,6 +128,7 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
                 <p className="font-gilroy text-[17px] font-bold tracking-tight text-[#1D1E20]">
                   CRM Sales
                 </p>
+
                 <p className="font-inter text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9CA1AA]">
                   Management
                 </p>
@@ -118,7 +149,10 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           {navigation.map((section) => (
-            <div key={section.label} className="mb-6">
+            <div
+              key={section.label}
+              className="mb-6"
+            >
               {!collapsed && (
                 <p className="mb-2 px-3 font-inter text-[10px] font-bold uppercase tracking-[0.16em] text-[#B2B6BD]">
                   {section.label}
@@ -134,7 +168,11 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
                       key={item.path}
                       to={item.path}
                       onClick={onClose}
-                      title={collapsed ? item.name : undefined}
+                      title={
+                        collapsed
+                          ? item.name
+                          : undefined
+                      }
                       className={({ isActive }) =>
                         `
                         group flex h-11 items-center rounded-xl px-3
@@ -144,7 +182,11 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
                             ? "bg-[#F5F8FE] text-[#266DF0]"
                             : "text-[#555E67] hover:bg-[#F5F8FE] hover:text-[#266DF0]"
                         }
-                        ${collapsed ? "justify-center" : "gap-3"}
+                        ${
+                          collapsed
+                            ? "justify-center"
+                            : "gap-3"
+                        }
                         `
                       }
                     >
@@ -152,11 +194,15 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
                         <>
                           <Icon
                             size={19}
-                            strokeWidth={isActive ? 2.2 : 1.9}
+                            strokeWidth={
+                              isActive ? 2.2 : 1.9
+                            }
                             className="shrink-0"
                           />
 
-                          {!collapsed && <span>{item.name}</span>}
+                          {!collapsed && (
+                            <span>{item.name}</span>
+                          )}
 
                           {!collapsed && isActive && (
                             <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#266DF0]" />
@@ -173,14 +219,22 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
 
         {/* Bottom */}
         <div className="border-t border-[#EDEEF0] p-3">
+
+          {/* Settings */}
           <NavLink
             to="/settings"
-            title={collapsed ? "Settings" : undefined}
+            title={
+              collapsed ? "Settings" : undefined
+            }
             className={({ isActive }) =>
               `
               flex h-11 items-center rounded-xl px-3 font-inter text-sm
               font-medium transition-all
-              ${collapsed ? "justify-center" : "gap-3"}
+              ${
+                collapsed
+                  ? "justify-center"
+                  : "gap-3"
+              }
               ${
                 isActive
                   ? "bg-[#F5F8FE] text-[#266DF0]"
@@ -194,13 +248,20 @@ function Sidebar({ collapsed, mobileOpen, onClose, onToggle }) {
             {!collapsed && <span>Settings</span>}
           </NavLink>
 
+          {/* Logout */}
           <button
             type="button"
+            onClick={handleLogout}
+            title={collapsed ? "Logout" : undefined}
             className={`
               mt-1 flex h-11 w-full items-center rounded-xl px-3
               font-inter text-sm font-medium text-[#555E67]
               transition-all hover:bg-red-50 hover:text-red-500
-              ${collapsed ? "justify-center" : "gap-3"}
+              ${
+                collapsed
+                  ? "justify-center"
+                  : "gap-3"
+              }
             `}
           >
             <LogOut size={19} />
