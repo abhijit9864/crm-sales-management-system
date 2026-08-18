@@ -48,14 +48,36 @@ const create = async (req, res) => {
   }
 };
 
+// const getAll = async (req, res) => {
+//   try {
+//     const customers = await getCustomers(req.user);
+
+//     return res.status(200).json({
+//       success: true,
+//       count: customers.length,
+//       customers,
+//     });
+//   } catch (error) {
+//     console.error("Get customers error:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch customers",
+//     });
+//   }
+// };
+
 const getAll = async (req, res) => {
   try {
-    const customers = await getCustomers(req.user);
+    const result = await getCustomers(
+      req.user,
+      req.query
+    );
 
     return res.status(200).json({
       success: true,
-      count: customers.length,
-      customers,
+      customers: result.customers,
+      pagination: result.pagination,
     });
   } catch (error) {
     console.error("Get customers error:", error);

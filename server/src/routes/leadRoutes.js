@@ -7,6 +7,7 @@ const {
   update,
   remove,
   assign,
+  convert,
 } = require("../controllers/leadController");
 
 const protect = require("../middleware/authMiddleware");
@@ -24,6 +25,12 @@ router.patch(
   protect,
   authorize("ADMIN", "SALES_MANAGER"),
   assign
+);
+router.post(
+  "/:id/convert",
+  protect,
+  authorize("ADMIN", "SALES_MANAGER"),
+  convert
 );
 
 module.exports = router;

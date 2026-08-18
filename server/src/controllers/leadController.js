@@ -5,6 +5,7 @@ const {
   updateLead,
   deleteLead,
   assignLead,
+  convertLeadToCustomer,
 } = require("../services/leadService");
 
 const create = async (req, res) => {
@@ -67,9 +68,7 @@ const getOne = async (req, res) => {
       error.message === "Lead not found" ||
       error.message.includes("not authorized")
     ) {
-      return res.status(
-        error.message === "Lead not found" ? 404 : 403
-      ).json({
+      return res.status(error.message === "Lead not found" ? 404 : 403).json({
         success: false,
         message: error.message,
       });
@@ -86,11 +85,7 @@ const getOne = async (req, res) => {
 
 const update = async (req, res) => {
   try {
-    const lead = await updateLead(
-      req.params.id,
-      req.body,
-      req.user
-    );
+    const lead = await updateLead(req.params.id, req.body, req.user);
 
     return res.status(200).json({
       success: true,
@@ -102,9 +97,7 @@ const update = async (req, res) => {
       error.message === "Lead not found" ||
       error.message.includes("not authorized")
     ) {
-      return res.status(
-        error.message === "Lead not found" ? 404 : 403
-      ).json({
+      return res.status(error.message === "Lead not found" ? 404 : 403).json({
         success: false,
         message: error.message,
       });
@@ -132,9 +125,7 @@ const remove = async (req, res) => {
       error.message === "Lead not found" ||
       error.message.includes("not authorized")
     ) {
-      return res.status(
-        error.message === "Lead not found" ? 404 : 403
-      ).json({
+      return res.status(error.message === "Lead not found" ? 404 : 403).json({
         success: false,
         message: error.message,
       });
@@ -160,11 +151,7 @@ const assign = async (req, res) => {
       });
     }
 
-    const lead = await assignLead(
-      req.params.id,
-      assignedTo,
-      req.user
-    );
+    const lead = await assignLead(req.params.id, assignedTo, req.user);
 
     return res.status(200).json({
       success: true,
@@ -178,15 +165,17 @@ const assign = async (req, res) => {
       error.message.includes("not authorized") ||
       error.message.includes("only be assigned")
     ) {
-      return res.status(
-        error.message === "Lead not found" ||
-        error.message === "Assigned user not found"
-          ? 404
-          : 403
-      ).json({
-        success: false,
-        message: error.message,
-      });
+      return res
+        .status(
+          error.message === "Lead not found" ||
+            error.message === "Assigned user not found"
+            ? 404
+            : 403,
+        )
+        .json({
+          success: false,
+          message: error.message,
+        });
     }
 
     console.error("Assign lead error:", error);
@@ -198,6 +187,120 @@ const assign = async (req, res) => {
   }
 };
 
+// const convert = async (req, res) => {
+//   try {
+//     const customer = await convertLeadToCustomer(req.params.id, req.user);
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Lead converted to customer successfully",
+//       customer,
+//     });
+//   } catch (error) {
+//     // if (
+//     //   error.message === "Lead not found" ||
+//     //   error.message === "A customer with this email already exists"
+//     // ) {
+//     //   return res.status(404).json({
+//     //     success: false,
+//     //     message: error.message,
+//     //   });
+//     // }
+
+//     // if (error.message === "Lead has already been converted") {
+//     //   return res.status(409).json({
+//     //     success: false,
+//     //     message: error.message,
+//     //   });
+//     // }
+
+//     if (error.message === "Lead not found") {
+//   return res.status(404).json({
+//     success: false,
+//     message: error.message,
+//   });
+// }
+
+// if (
+//   error.message ===
+//   "A customer with this email already exists"
+// ) {
+//   return res.status(409).json({
+//     success: false,
+//     message: error.message,
+//   });
+// }
+
+//     if (error.message.includes("not authorized")) {
+//       return res.status(403).json({
+//         success: false,
+//         message: error.message,
+//       });
+//     }
+
+//     console.error("Convert lead error:", error);
+
+//     return res.status(404).json({
+//       success: false,
+//       message: "Failed to convert lead",
+//     });
+//   }
+// };
+const convert = async (req, res) => {
+  try {
+    const customer = await convertLeadToCustomer(
+      req.params.id,
+      req.user
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Lead converted to customer successfully",
+      customer,
+    });
+  } catch (error) {
+    if (error.message === "Lead not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (
+      error.message === "Lead has already been converted"
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (
+      error.message ===
+      "A customer with this email already exists"
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (error.message.includes("not authorized")) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Convert lead error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to convert lead",
+    });
+  }
+};
+
 module.exports = {
   create,
   getAll,
@@ -205,4 +308,5 @@ module.exports = {
   update,
   remove,
   assign,
+  convert,
 };

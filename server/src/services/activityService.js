@@ -82,21 +82,97 @@ const createActivity = async (activityData, user) => {
     .populate("deal", "title value stage");
 };
 
-const getActivities = async (user) => {
+// const getActivities = async (user) => {
+//   const filter = {};
+
+//   // Sales Executives see only their activities.
+//   if (user.role === "SALES_EXECUTIVE") {
+//     filter.assignedTo = user._id;
+//   }
+
+//   return Activity.find(filter)
+//     .populate("assignedTo", "name email role")
+//     .populate("createdBy", "name email role")
+//     .populate("lead", "name email company")
+//     .populate("customer", "name email company")
+//     .populate("deal", "title value stage")
+//     .sort({ dueDate: 1, createdAt: -1 });
+// };
+
+const getActivities = async (user, query = {}) => {
+  const {
+    search,
+    type,
+    status,
+    assignedTo,
+    page = 1,
+    limit = 10,
+  } = query;
+
   const filter = {};
 
-  // Sales Executives see only their activities.
+  // Sales Executives can only see their own activities.
   if (user.role === "SALES_EXECUTIVE") {
     filter.assignedTo = user._id;
+  } else if (assignedTo) {
+    filter.assignedTo = assignedTo;
   }
 
-  return Activity.find(filter)
-    .populate("assignedTo", "name email role")
-    .populate("createdBy", "name email role")
-    .populate("lead", "name email company")
-    .populate("customer", "name email company")
-    .populate("deal", "title value stage")
-    .sort({ dueDate: 1, createdAt: -1 });
+  // Filter by activity type.
+  if (type) {
+    filter.type = type;
+  }
+
+  // Filter by activity status.
+  if (status) {
+    filter.status = status;
+  }
+
+  // Search by subject or description.
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+
+    filter.$or = [
+      { subject: searchRegex },
+      { description: searchRegex },
+    ];
+  }
+
+  const currentPage = Math.max(
+    parseInt(page, 10) || 1,
+    1
+  );
+
+  const currentLimit = Math.min(
+    Math.max(parseInt(limit, 10) || 10, 1),
+    100
+  );
+
+  const skip = (currentPage - 1) * currentLimit;
+
+  const [activities, total] = await Promise.all([
+    Activity.find(filter)
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
+      .populate("lead", "name email company")
+      .populate("customer", "name email company")
+      .populate("deal", "title value stage")
+      .sort({ dueDate: 1, createdAt: -1 })
+      .skip(skip)
+      .limit(currentLimit),
+
+    Activity.countDocuments(filter),
+  ]);
+
+  return {
+    activities,
+    pagination: {
+      page: currentPage,
+      limit: currentLimit,
+      total,
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
 };
 
 const getActivityById = async (activityId, user) => {

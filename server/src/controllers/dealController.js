@@ -42,14 +42,36 @@ const create = async (req, res) => {
   }
 };
 
+// const getAll = async (req, res) => {
+//   try {
+//     const deals = await getDeals(req.user);
+
+//     return res.status(200).json({
+//       success: true,
+//       count: deals.length,
+//       deals,
+//     });
+//   } catch (error) {
+//     console.error("Get deals error:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch deals",
+//     });
+//   }
+// };
+
 const getAll = async (req, res) => {
   try {
-    const deals = await getDeals(req.user);
+    const result = await getDeals(
+      req.user,
+      req.query
+    );
 
     return res.status(200).json({
       success: true,
-      count: deals.length,
-      deals,
+      deals: result.deals,
+      pagination: result.pagination,
     });
   } catch (error) {
     console.error("Get deals error:", error);

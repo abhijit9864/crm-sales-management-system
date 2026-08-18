@@ -17,19 +17,83 @@ const createCustomer = async (customerData, userId) => {
   return customer;
 };
 
-const getCustomers = async (user) => {
+// const getCustomers = async (user) => {
+//   const filter = {};
+
+//   // Sales Executives can only see customers assigned to them.
+//   if (user.role === "SALES_EXECUTIVE") {
+//     filter.assignedTo = user._id;
+//   }
+
+//   return Customer.find(filter)
+//     .populate("assignedTo", "name email role")
+//     .populate("createdBy", "name email role")
+//     .populate("sourceLead", "name email company")
+//     .sort({ createdAt: -1 });
+// };
+
+const getCustomers = async (user, query = {}) => {
+  const {
+    search,
+    assignedTo,
+    page = 1,
+    limit = 10,
+  } = query;
+
   const filter = {};
 
   // Sales Executives can only see customers assigned to them.
   if (user.role === "SALES_EXECUTIVE") {
     filter.assignedTo = user._id;
+  } else if (assignedTo) {
+    filter.assignedTo = assignedTo;
   }
 
-  return Customer.find(filter)
-    .populate("assignedTo", "name email role")
-    .populate("createdBy", "name email role")
-    .populate("sourceLead", "name email company")
-    .sort({ createdAt: -1 });
+  // Search by name, email, phone, or company.
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+
+    filter.$or = [
+      { name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex },
+      { company: searchRegex },
+    ];
+  }
+
+  const currentPage = Math.max(
+    parseInt(page, 10) || 1,
+    1
+  );
+
+  const currentLimit = Math.min(
+    Math.max(parseInt(limit, 10) || 10, 1),
+    100
+  );
+
+  const skip = (currentPage - 1) * currentLimit;
+
+  const [customers, total] = await Promise.all([
+    Customer.find(filter)
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
+      .populate("sourceLead", "name email company")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(currentLimit),
+
+    Customer.countDocuments(filter),
+  ]);
+
+  return {
+    customers,
+    pagination: {
+      page: currentPage,
+      limit: currentLimit,
+      total,
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
 };
 
 const getCustomerById = async (customerId, user) => {

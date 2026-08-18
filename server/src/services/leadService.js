@@ -1,4 +1,5 @@
 const Lead = require("../models/Lead");
+const Customer = require("../models/Customer");
 
 const createLead = async (leadData, userId) => {
   const lead = await Lead.create({
@@ -9,18 +10,94 @@ const createLead = async (leadData, userId) => {
   return lead;
 };
 
-const getLeads = async (user) => {
+// const getLeads = async (user) => {
+//   const filter = {};
+
+//   // Sales Executives can only see their own leads.
+//   if (user.role === "SALES_EXECUTIVE") {
+//     filter.assignedTo = user._id;
+//   }
+
+//   return Lead.find(filter)
+//     .populate("assignedTo", "name email role")
+//     .populate("createdBy", "name email role")
+//     .sort({ createdAt: -1 });
+// };
+
+
+const getLeads = async (user, query = {}) => {
+  const {
+    search,
+    status,
+    source,
+    assignedTo,
+    page = 1,
+    limit = 10,
+  } = query;
+
   const filter = {};
 
   // Sales Executives can only see their own leads.
   if (user.role === "SALES_EXECUTIVE") {
     filter.assignedTo = user._id;
+  } else if (assignedTo) {
+    filter.assignedTo = assignedTo;
   }
 
-  return Lead.find(filter)
-    .populate("assignedTo", "name email role")
-    .populate("createdBy", "name email role")
-    .sort({ createdAt: -1 });
+  // Filter by lead status.
+  if (status) {
+    filter.status = status;
+  }
+
+  // Filter by lead source.
+  if (source) {
+    filter.source = source;
+  }
+
+  // Search by name, email, phone or company.
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+
+    filter.$or = [
+      { name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex },
+      { company: searchRegex },
+    ];
+  }
+
+  const currentPage = Math.max(parseInt(page, 10) || 1, 1);
+  const currentLimit = Math.min(
+    Math.max(parseInt(limit, 10) || 10, 1),
+    100
+  );
+
+  const skip = (currentPage - 1) * currentLimit;
+
+  const [leads, total] = await Promise.all([
+    Lead.find(filter)
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
+      .populate(
+        "convertedCustomer",
+        "name email company"
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(currentLimit),
+
+    Lead.countDocuments(filter),
+  ]);
+
+  return {
+    leads,
+    pagination: {
+      page: currentPage,
+      limit: currentLimit,
+      total,
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
 };
 
 const getLeadById = async (leadId, user) => {
@@ -128,6 +205,60 @@ const assignLead = async (leadId, assignedTo, user) => {
     .populate("createdBy", "name email role");
 };
 
+const convertLeadToCustomer = async (leadId, user) => {
+  const lead = await Lead.findById(leadId);
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
+
+  // Only Admin and Sales Manager can convert leads.
+  if (
+    user.role !== "ADMIN" &&
+    user.role !== "SALES_MANAGER"
+  ) {
+    throw new Error(
+      "You are not authorized to convert leads"
+    );
+  }
+
+  // Prevent converting the same lead twice.
+  if (lead.status === "Converted" || lead.convertedCustomer) {
+    throw new Error("Lead has already been converted");
+  }
+
+  const existingCustomer = await Customer.findOne({
+    email: lead.email,
+  });
+
+  if (existingCustomer) {
+    throw new Error(
+      "A customer with this email already exists"
+    );
+  }
+
+  const customer = await Customer.create({
+    name: lead.name,
+    email: lead.email,
+    phone: lead.phone,
+    company: lead.company,
+    notes: lead.notes,
+    assignedTo: lead.assignedTo,
+    sourceLead: lead._id,
+    createdBy: user._id,
+  });
+
+  lead.status = "Converted";
+  lead.convertedCustomer = customer._id;
+
+  await lead.save();
+
+  return Customer.findById(customer._id)
+    .populate("assignedTo", "name email role")
+    .populate("createdBy", "name email role")
+    .populate("sourceLead", "name email company");
+};
+
 module.exports = {
   createLead,
   getLeads,
@@ -135,4 +266,5 @@ module.exports = {
   updateLead,
   deleteLead,
   assignLead,
+  convertLeadToCustomer,
 };

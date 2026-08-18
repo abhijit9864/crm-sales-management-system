@@ -65,6 +65,12 @@ const leadSchema = new mongoose.Schema(
       default: null,
     },
 
+   convertedCustomer: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Customer",
+  default: null,
+}, 
+
     notes: {
       type: String,
       trim: true,

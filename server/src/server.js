@@ -14,6 +14,7 @@ const customerRoutes = require("./routes/customerRoutes");
 const dealRoutes = require("./routes/dealRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 // Middleware
 app.use(
@@ -35,6 +36,8 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/deals", dealRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/users", userRoutes);
+
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

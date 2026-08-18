@@ -56,14 +56,35 @@ const create = async (req, res) => {
   }
 };
 
+// const getAll = async (req, res) => {
+//   try {
+//     const activities = await getActivities(req.user);
+
+//     return res.status(200).json({
+//       success: true,
+//       count: activities.length,
+//       activities,
+//     });
+//   } catch (error) {
+//     console.error("Get activities error:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch activities",
+//     });
+//   }
+// };
 const getAll = async (req, res) => {
   try {
-    const activities = await getActivities(req.user);
+    const result = await getActivities(
+      req.user,
+      req.query
+    );
 
     return res.status(200).json({
       success: true,
-      count: activities.length,
-      activities,
+      activities: result.activities,
+      pagination: result.pagination,
     });
   } catch (error) {
     console.error("Get activities error:", error);
@@ -74,7 +95,6 @@ const getAll = async (req, res) => {
     });
   }
 };
-
 const getOne = async (req, res) => {
   try {
     const activity = await getActivityById(

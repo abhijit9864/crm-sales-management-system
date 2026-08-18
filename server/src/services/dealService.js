@@ -19,19 +19,85 @@ const createDeal = async (dealData, userId) => {
     .populate("createdBy", "name email role");
 };
 
-const getDeals = async (user) => {
+// const getDeals = async (user) => {
+//   const filter = {};
+
+//   // Sales Executives can only see their assigned deals.
+//   if (user.role === "SALES_EXECUTIVE") {
+//     filter.assignedTo = user._id;
+//   }
+
+//   return Deal.find(filter)
+//     .populate("customer", "name email company")
+//     .populate("assignedTo", "name email role")
+//     .populate("createdBy", "name email role")
+//     .sort({ createdAt: -1 });
+// };
+
+
+const getDeals = async (user, query = {}) => {
+  const {
+    search,
+    stage,
+    assignedTo,
+    page = 1,
+    limit = 10,
+  } = query;
+
   const filter = {};
 
   // Sales Executives can only see their assigned deals.
   if (user.role === "SALES_EXECUTIVE") {
     filter.assignedTo = user._id;
+  } else if (assignedTo) {
+    filter.assignedTo = assignedTo;
   }
 
-  return Deal.find(filter)
-    .populate("customer", "name email company")
-    .populate("assignedTo", "name email role")
-    .populate("createdBy", "name email role")
-    .sort({ createdAt: -1 });
+  // Filter by deal stage.
+  if (stage) {
+    filter.stage = stage;
+  }
+
+  // Search by deal title.
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+
+    filter.title = searchRegex;
+  }
+
+  const currentPage = Math.max(
+    parseInt(page, 10) || 1,
+    1
+  );
+
+  const currentLimit = Math.min(
+    Math.max(parseInt(limit, 10) || 10, 1),
+    100
+  );
+
+  const skip = (currentPage - 1) * currentLimit;
+
+  const [deals, total] = await Promise.all([
+    Deal.find(filter)
+      .populate("customer", "name email company")
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(currentLimit),
+
+    Deal.countDocuments(filter),
+  ]);
+
+  return {
+    deals,
+    pagination: {
+      page: currentPage,
+      limit: currentLimit,
+      total,
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
 };
 
 const getDealById = async (dealId, user) => {
