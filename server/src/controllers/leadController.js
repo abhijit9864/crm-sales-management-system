@@ -38,12 +38,13 @@ const create = async (req, res) => {
 
 const getAll = async (req, res) => {
   try {
-    const leads = await getLeads(req.user);
+    const { leads, pagination } = await getLeads(req.user, req.query);
 
     return res.status(200).json({
       success: true,
-      count: leads.length,
+      count: pagination.total,
       leads,
+      pagination,
     });
   } catch (error) {
     console.error("Get leads error:", error);

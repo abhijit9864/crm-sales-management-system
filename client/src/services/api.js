@@ -259,4 +259,74 @@ export const updateUserStatus = (
     body: JSON.stringify({ isActive }),
   });
 
+  // ======================================================
+// CONTACTS
+// ======================================================
+
+export const getContacts = (params = {}) => {
+  const query = new URLSearchParams();
+
+  if (params.search) {
+    query.append("search", params.search);
+  }
+
+  if (params.customer) {
+    query.append("customer", params.customer);
+  }
+
+  if (params.lead) {
+    query.append("lead", params.lead);
+  }
+
+  if (params.assignedTo) {
+    query.append("assignedTo", params.assignedTo);
+  }
+
+  if (params.page) {
+    query.append("page", params.page);
+  }
+
+  if (params.limit) {
+    query.append("limit", params.limit);
+  }
+
+  const queryString = query.toString();
+
+  return apiRequest(
+    `/contacts${queryString ? `?${queryString}` : ""}`
+  );
+};
+
+export const getContact = (contactId) =>
+  apiRequest(`/contacts/${contactId}`);
+
+export const createContact = (contactData) =>
+  apiRequest("/contacts", {
+    method: "POST",
+    body: JSON.stringify(contactData),
+  });
+
+export const updateContact = (
+  contactId,
+  contactData
+) =>
+  apiRequest(`/contacts/${contactId}`, {
+    method: "PATCH",
+    body: JSON.stringify(contactData),
+  });
+
+export const deleteContact = (contactId) =>
+  apiRequest(`/contacts/${contactId}`, {
+    method: "DELETE",
+  });
+
+export const assignContact = (
+  contactId,
+  assignedTo
+) =>
+  apiRequest(`/contacts/${contactId}/assign`, {
+    method: "PATCH",
+    body: JSON.stringify({ assignedTo }),
+  });
+
 export default apiRequest;
