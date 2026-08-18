@@ -58,8 +58,37 @@ export const getDashboard = () =>
 // LEADS
 // ======================================================
 
-export const getLeads = () =>
-  apiRequest("/leads");
+export const getLeads = (params = {}) => {
+  const query = new URLSearchParams();
+
+  if (params.search) {
+    query.append("search", params.search);
+  }
+
+  if (params.status) {
+    query.append("status", params.status);
+  }
+
+  if (params.source) {
+    query.append("source", params.source);
+  }
+
+  if (params.assignedTo) {
+    query.append("assignedTo", params.assignedTo);
+  }
+
+  if (params.page) {
+    query.append("page", params.page);
+  }
+
+  if (params.limit) {
+    query.append("limit", params.limit);
+  }
+
+  const queryString = query.toString();
+
+  return apiRequest(`/leads${queryString ? `?${queryString}` : ""}`);
+};
 
 export const getLead = (leadId) =>
   apiRequest(`/leads/${leadId}`);
@@ -96,8 +125,29 @@ export const convertLead = (leadId) =>
 // CUSTOMERS
 // ======================================================
 
-export const getCustomers = () =>
-  apiRequest("/customers");
+export const getCustomers = (params = {}) => {
+  const query = new URLSearchParams();
+
+  if (params.search) {
+    query.append("search", params.search);
+  }
+
+  if (params.assignedTo) {
+    query.append("assignedTo", params.assignedTo);
+  }
+
+  if (params.page) {
+    query.append("page", params.page);
+  }
+
+  if (params.limit) {
+    query.append("limit", params.limit);
+  }
+
+  const queryString = query.toString();
+
+  return apiRequest(`/customers${queryString ? `?${queryString}` : ""}`);
+};
 
 export const getCustomer = (customerId) =>
   apiRequest(`/customers/${customerId}`);

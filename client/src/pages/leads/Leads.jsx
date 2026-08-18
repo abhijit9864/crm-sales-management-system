@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircle2,
   Edit,
@@ -43,6 +43,7 @@ function Leads() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [sourceFilter, setSourceFilter] = useState("All");
 
   // --------------------------------------------------
   // CREATE / EDIT
@@ -58,6 +59,7 @@ function Leads() {
     phone: "",
     company: "",
     source: "Other",
+    priority: "Medium",
     status: "New",
     notes: "",
   });
@@ -111,27 +113,19 @@ function Leads() {
   // LOAD LEADS
   // --------------------------------------------------
 
-  const loadLeads = async () => {
+  const loadLeads = async (params = {}) => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await getLeads();
-
-      // Backend response:
-      //
-      // {
-      //   success: true,
-      //   leads: {
-      //     leads: [],
-      //     pagination: {}
-      //   }
-      // }
+      const response = await getLeads({
+        search: params.search ?? search,
+        status: params.status ?? (statusFilter === "All" ? "" : statusFilter),
+        source: params.source ?? (sourceFilter === "All" ? "" : sourceFilter),
+      });
 
       const responseLeads =
-        response?.leads?.leads ??
         response?.leads ??
-        response?.data?.leads?.leads ??
         response?.data?.leads ??
         [];
 
@@ -151,36 +145,41 @@ function Leads() {
     loadLeads();
   }, []);
 
+  const handleSearchChange = async (nextSearch) => {
+    setSearch(nextSearch);
+
+    await loadLeads({
+      search: nextSearch,
+      status: statusFilter === "All" ? "" : statusFilter,
+      source: sourceFilter === "All" ? "" : sourceFilter,
+    });
+  };
+
+  const handleStatusChange = async (nextStatus) => {
+    setStatusFilter(nextStatus);
+
+    await loadLeads({
+      search,
+      status: nextStatus === "All" ? "" : nextStatus,
+      source: sourceFilter === "All" ? "" : sourceFilter,
+    });
+  };
+
+  const handleSourceChange = async (nextSource) => {
+    setSourceFilter(nextSource);
+
+    await loadLeads({
+      search,
+      status: statusFilter === "All" ? "" : statusFilter,
+      source: nextSource === "All" ? "" : nextSource,
+    });
+  };
+
   // --------------------------------------------------
   // FILTER LEADS
   // --------------------------------------------------
 
-  const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
-      const searchText = search.toLowerCase().trim();
-
-      const matchesSearch =
-        !searchText ||
-        lead.name
-          ?.toLowerCase()
-          .includes(searchText) ||
-        lead.email
-          ?.toLowerCase()
-          .includes(searchText) ||
-        lead.company
-          ?.toLowerCase()
-          .includes(searchText) ||
-        lead.phone
-          ?.toLowerCase()
-          .includes(searchText);
-
-      const matchesStatus =
-        statusFilter === "All" ||
-        lead.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [leads, search, statusFilter]);
+  const filteredLeads = leads;
 
   // --------------------------------------------------
   // CREATE LEAD
@@ -195,6 +194,7 @@ function Leads() {
       phone: "",
       company: "",
       source: "Other",
+      priority: "Medium",
       status: "New",
       notes: "",
     });
@@ -215,6 +215,7 @@ function Leads() {
       phone: lead.phone || "",
       company: lead.company || "",
       source: lead.source || "Other",
+      priority: lead.priority || "Medium",
       status: lead.status || "New",
       notes: lead.notes || "",
     });
@@ -418,6 +419,13 @@ function Leads() {
       return;
     }
 
+    if (lead.status !== "Qualified") {
+      alert(
+        "Only qualified leads can be converted to a customer."
+      );
+      return;
+    }
+
     if (lead.status === "Converted") {
       alert(
         "Lead has already been converted"
@@ -478,6 +486,19 @@ function Leads() {
     );
   };
 
+  const getPriorityClass = (priority) => {
+    const classes = {
+      Low: "bg-green-50 text-green-700",
+      Medium: "bg-yellow-50 text-yellow-700",
+      High: "bg-red-50 text-red-700",
+    };
+
+    return (
+      classes[priority] ||
+      "bg-gray-50 text-gray-600"
+    );
+  };
+
   // --------------------------------------------------
   // RENDER
   // --------------------------------------------------
@@ -532,7 +553,7 @@ function Leads() {
               type="text"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                handleSearchChange(event.target.value)
               }
               placeholder="Search leads..."
               className="h-11 w-full rounded-xl border border-[#EDEEF0] bg-[#F8FAFD] pl-11 pr-4 font-inter text-sm text-[#232529] outline-none focus:border-[#B3CCFA] focus:bg-white focus:ring-4 focus:ring-[#D9E5FC]"
@@ -544,7 +565,7 @@ function Leads() {
           <select
             value={statusFilter}
             onChange={(event) =>
-              setStatusFilter(event.target.value)
+              handleStatusChange(event.target.value)
             }
             className="h-11 rounded-xl border border-[#EDEEF0] bg-[#F8FAFD] px-4 font-inter text-sm text-[#555E67] outline-none focus:border-[#B3CCFA]"
           >
@@ -571,6 +592,27 @@ function Leads() {
             </option>
 
             <option value="Lost">Lost</option>
+          </select>
+
+          {/* Source */}
+
+          <select
+            value={sourceFilter}
+            onChange={(event) =>
+              handleSourceChange(event.target.value)
+            }
+            className="h-11 rounded-xl border border-[#EDEEF0] bg-[#F8FAFD] px-4 font-inter text-sm text-[#555E67] outline-none focus:border-[#B3CCFA]"
+          >
+            <option value="All">
+              All Sources
+            </option>
+
+            <option value="Website">Website</option>
+            <option value="Referral">Referral</option>
+            <option value="Social Media">Social Media</option>
+            <option value="Advertisement">Advertisement</option>
+            <option value="Cold Call">Cold Call</option>
+            <option value="Other">Other</option>
           </select>
         </div>
       </div>
@@ -632,6 +674,10 @@ function Leads() {
                   </th>
 
                   <th className="px-5 py-4 text-left font-inter text-xs font-semibold uppercase tracking-wide text-[#9CA1AA]">
+                    Priority
+                  </th>
+
+                  <th className="px-5 py-4 text-left font-inter text-xs font-semibold uppercase tracking-wide text-[#9CA1AA]">
                     Status
                   </th>
 
@@ -675,6 +721,18 @@ function Leads() {
 
                     <td className="px-5 py-4 font-inter text-sm text-[#555E67]">
                       {lead.phone}
+                    </td>
+
+                    {/* Priority */}
+
+                    <td className="px-5 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 font-inter text-xs font-semibold ${getPriorityClass(
+                          lead.priority
+                        )}`}
+                      >
+                        {lead.priority || "Medium"}
+                      </span>
                     </td>
 
                     {/* Status */}
@@ -770,7 +828,7 @@ function Leads() {
                         {/* Convert */}
 
                         {canConvert &&
-                          lead.status !== "Converted" && (
+                          lead.status === "Qualified" && (
                             <button
                               type="button"
                               title="Convert to Customer"
@@ -921,6 +979,14 @@ function Leads() {
                     "Cold Call",
                     "Other",
                   ]}
+                />
+
+                <SelectField
+                  label="Priority"
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                  options={["Low", "Medium", "High"]}
                 />
 
                 <SelectField

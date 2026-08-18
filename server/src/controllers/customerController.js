@@ -76,6 +76,7 @@ const getAll = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      count: result.pagination.total,
       customers: result.customers,
       pagination: result.pagination,
     });

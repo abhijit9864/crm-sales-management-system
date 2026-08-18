@@ -222,6 +222,11 @@ const convertLeadToCustomer = async (leadId, user) => {
     );
   }
 
+  // Only qualified leads can be converted to customers.
+  if (lead.status !== "Qualified") {
+    throw new Error("Only qualified leads can be converted to a customer");
+  }
+
   // Prevent converting the same lead twice.
   if (lead.status === "Converted" || lead.convertedCustomer) {
     throw new Error("Lead has already been converted");

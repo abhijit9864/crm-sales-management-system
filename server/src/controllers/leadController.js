@@ -278,6 +278,16 @@ const convert = async (req, res) => {
 
     if (
       error.message ===
+      "Only qualified leads can be converted to a customer"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (
+      error.message ===
       "A customer with this email already exists"
     ) {
       return res.status(409).json({

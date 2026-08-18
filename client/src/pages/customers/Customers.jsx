@@ -81,29 +81,14 @@ function Customers() {
   // LOAD CUSTOMERS
   // --------------------------------------------------
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (params = {}) => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await getCustomers();
-
-      /*
-        Supports:
-
-        {
-          success: true,
-          customers: [...]
-        }
-
-        and
-
-        {
-          data: {
-            customers: [...]
-          }
-        }
-      */
+      const response = await getCustomers({
+        search: params.search ?? search,
+      });
 
       const responseCustomers =
         response?.customers ??
@@ -166,34 +151,17 @@ function Customers() {
     loadUsers();
   }, [canAssign]);
 
+  const handleSearchChange = async (nextValue) => {
+    setSearch(nextValue);
+
+    await loadCustomers({ search: nextValue });
+  };
+
   // --------------------------------------------------
   // SEARCH
   // --------------------------------------------------
 
-  const filteredCustomers = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return customers;
-    }
-
-    return customers.filter((customer) => {
-      return (
-        customer.name
-          ?.toLowerCase()
-          .includes(query) ||
-        customer.email
-          ?.toLowerCase()
-          .includes(query) ||
-        customer.company
-          ?.toLowerCase()
-          .includes(query) ||
-        customer.phone
-          ?.toLowerCase()
-          .includes(query)
-      );
-    });
-  }, [customers, search]);
+  const filteredCustomers = customers;
 
   // --------------------------------------------------
   // FORM
@@ -413,7 +381,7 @@ function Customers() {
             type="search"
             value={search}
             onChange={(event) =>
-              setSearch(event.target.value)
+              handleSearchChange(event.target.value)
             }
             placeholder="Search customers..."
             className="h-12 w-full rounded-xl border border-[#EDEEF0] bg-[#F8FAFD] pl-11 pr-4 font-inter text-sm text-[#232529] outline-none placeholder:text-[#9CA1AA] focus:border-[#B3CCFA] focus:bg-white focus:ring-4 focus:ring-[#D9E5FC]"
