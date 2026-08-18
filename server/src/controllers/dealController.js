@@ -173,23 +173,34 @@ const update = async (req, res) => {
       });
     }
 
-    if (error.message.includes("not authorized")) {
+    if (
+      error.message ===
+      "You are not authorized to update this deal"
+    ) {
       return res.status(403).json({
         success: false,
         message: error.message,
       });
     }
 
-    // Mongoose validation error
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map(
-        (err) => err.message
-      );
+    if (
+      error.message ===
+      "Closed deals cannot be moved to another stage"
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
 
+    // Mongoose validation errors
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         message: "Validation failed",
-        errors: messages,
+        errors: Object.values(error.errors).map(
+          (err) => err.message
+        ),
       });
     }
 

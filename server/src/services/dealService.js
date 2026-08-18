@@ -130,6 +130,7 @@ const updateDeal = async (dealId, updateData, user) => {
     throw new Error("Deal not found");
   }
 
+  // Sales Executives can only update their assigned deals.
   if (
     user.role === "SALES_EXECUTIVE" &&
     (!deal.assignedTo ||
@@ -147,6 +148,18 @@ const updateDeal = async (dealId, updateData, user) => {
 
   // Don't allow changing the creator.
   delete updateData.createdBy;
+
+  // Closed deals cannot be moved to another stage.
+  if (
+    (deal.stage === "Closed Won" ||
+      deal.stage === "Closed Lost") &&
+    updateData.stage &&
+    updateData.stage !== deal.stage
+  ) {
+    throw new Error(
+      "Closed deals cannot be moved to another stage"
+    );
+  }
 
   Object.assign(deal, updateData);
 

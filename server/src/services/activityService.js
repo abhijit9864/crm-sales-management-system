@@ -124,8 +124,16 @@ const getActivities = async (user, query = {}) => {
   }
 
   // Filter by activity status.
-  if (status) {
+  if (status && status !== "Overdue") {
     filter.status = status;
+  }
+
+  // Overdue = Pending activity whose due date has passed.
+  if (status === "Overdue") {
+    filter.status = "Pending";
+    filter.dueDate = {
+      $lt: new Date(),
+    };
   }
 
   // Search by subject or description.

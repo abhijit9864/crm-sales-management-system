@@ -132,13 +132,18 @@ const getDashboardStats = async (user) => {
     activities,
     recentActivities,
     upcomingActivities,
+    overdueCount,
   ] = await Promise.all([
+    // Total leads
     Lead.countDocuments(leadFilter),
 
+    // Total customers
     Customer.countDocuments(customerFilter),
 
+    // Total deals
     Deal.countDocuments(dealFilter),
 
+    // Pipeline statistics
     Deal.aggregate([
       { $match: dealFilter },
       {
@@ -155,6 +160,7 @@ const getDashboardStats = async (user) => {
       },
     ]),
 
+    // Activity statistics
     Activity.aggregate([
       { $match: activityFilter },
       {
@@ -165,13 +171,16 @@ const getDashboardStats = async (user) => {
       },
     ]),
 
+    // Recent activities
     Activity.find(activityFilter)
       .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
       .populate("customer", "name email company")
       .populate("deal", "title value stage")
       .sort({ createdAt: -1 })
       .limit(5),
 
+    // Upcoming activities
     Activity.find({
       ...activityFilter,
       status: "Pending",
@@ -180,31 +189,46 @@ const getDashboardStats = async (user) => {
       },
     })
       .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
       .populate("customer", "name email company")
       .populate("deal", "title value stage")
       .sort({ dueDate: 1 })
       .limit(5),
+
+    // Overdue activities
+    Activity.countDocuments({
+      ...activityFilter,
+      status: "Pending",
+      dueDate: {
+        $lt: new Date(),
+      },
+    }),
   ]);
 
+  // Calculate total pipeline value
   const pipelineValue = pipeline.reduce(
     (total, item) => total + item.totalValue,
     0
   );
 
+  // Activity statistics
   const activityStats = {
     Pending: 0,
     Completed: 0,
     Cancelled: 0,
+    Overdue: overdueCount,
   };
 
   activities.forEach((item) => {
     activityStats[item._id] = item.count;
   });
 
+  // Won deals
   const wonDeals = pipeline.find(
     (item) => item._id === "Closed Won"
   );
 
+  // Lost deals
   const lostDeals = pipeline.find(
     (item) => item._id === "Closed Lost"
   );
