@@ -1,5 +1,35 @@
 const User = require("../models/User");
 
+const createUser = async ({
+  name,
+  email,
+  password,
+  role,
+}) => {
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    throw new Error(
+      "User with this email already exists"
+    );
+  }
+
+  if (
+    !["SALES_MANAGER", "SALES_EXECUTIVE"].includes(role)
+  ) {
+    throw new Error("Invalid user role");
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role,
+  });
+
+  return User.findById(user._id).select("-password");
+};
+
 const getUsers = async () => {
   return User.find()
     .select("-password")
@@ -52,6 +82,7 @@ const updateUserStatus = async (userId, isActive) => {
 };
 
 module.exports = {
+  createUser,
   getUsers,
   getUserById,
   updateUser,

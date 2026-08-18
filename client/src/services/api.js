@@ -244,4 +244,19 @@ export const deleteActivity = (activityId) =>
     method: "DELETE",
   });
 
+  export const createUser = (userData) =>
+  apiRequest("/users", {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+
+export const updateUserStatus = (
+  userId,
+  isActive
+) =>
+  apiRequest(`/users/${userId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  });
+
 export default apiRequest;

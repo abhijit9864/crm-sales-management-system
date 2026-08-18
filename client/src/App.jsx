@@ -8,6 +8,8 @@ import Leads from "./pages/leads/Leads";
 import Customers from "./pages/customers/Customers";
 import Deals from "./pages/deals/Deals";
 import Activities from "./pages/activities/Activities";
+import Users from "./pages/users/Users";
+
 function App() {
   return (
     <Routes>
@@ -24,6 +26,10 @@ function App() {
           <Route path="/customers" element={<Customers />} />
           <Route path="/deals" element={<Deals />} />
           <Route path="/activities" element={<Activities />} />
+          <Route
+  path="/users"
+  element={<Users />}
+/>
         </Route>
       </Route>
     </Routes>

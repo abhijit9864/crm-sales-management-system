@@ -7,10 +7,12 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  ShieldCheck,
   Target,
   Users,
   X,
 } from "lucide-react";
+
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { logoutUser } from "../services/api";
@@ -71,26 +73,45 @@ function Sidebar({
 }) {
   const navigate = useNavigate();
 
+  // Get logged-in user
+  const storedUser = localStorage.getItem("user");
+
+  let currentUser = null;
+
+  try {
+    currentUser = storedUser
+      ? JSON.parse(storedUser)
+      : null;
+  } catch (error) {
+    console.error(
+      "Failed to parse stored user:",
+      error
+    );
+  }
+
+  const isAdmin =
+    currentUser?.role === "ADMIN";
+
   const handleLogout = async () => {
     try {
       await logoutUser();
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      // Remove locally stored user information.
       localStorage.removeItem("user");
 
-      // Close mobile sidebar if open.
       onClose?.();
 
-      // Redirect to login.
-      navigate("/login", { replace: true });
+      navigate("/login", {
+        replace: true,
+      });
     }
   };
 
   return (
     <>
       {/* Mobile overlay */}
+
       {mobileOpen && (
         <button
           type="button"
@@ -113,6 +134,7 @@ function Sidebar({
         `}
       >
         {/* Logo */}
+
         <div className="flex h-[76px] items-center border-b border-[#EDEEF0] px-5">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#266DF0] shadow-[0_7px_18px_rgba(38,109,240,0.22)]">
@@ -137,6 +159,7 @@ function Sidebar({
           </div>
 
           {/* Mobile close */}
+
           <button
             type="button"
             onClick={onClose}
@@ -147,6 +170,7 @@ function Sidebar({
         </div>
 
         {/* Navigation */}
+
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           {navigation.map((section) => (
             <div
@@ -195,18 +219,23 @@ function Sidebar({
                           <Icon
                             size={19}
                             strokeWidth={
-                              isActive ? 2.2 : 1.9
+                              isActive
+                                ? 2.2
+                                : 1.9
                             }
                             className="shrink-0"
                           />
 
                           {!collapsed && (
-                            <span>{item.name}</span>
+                            <span>
+                              {item.name}
+                            </span>
                           )}
 
-                          {!collapsed && isActive && (
-                            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#266DF0]" />
-                          )}
+                          {!collapsed &&
+                            isActive && (
+                              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#266DF0]" />
+                            )}
                         </>
                       )}
                     </NavLink>
@@ -215,16 +244,80 @@ function Sidebar({
               </div>
             </div>
           ))}
+
+          {/* =================================================
+              ADMINISTRATION
+          ================================================= */}
+
+          {isAdmin && (
+            <div className="mb-6">
+              {!collapsed && (
+                <p className="mb-2 px-3 font-inter text-[10px] font-bold uppercase tracking-[0.16em] text-[#B2B6BD]">
+                  Administration
+                </p>
+              )}
+
+              <NavLink
+                to="/users"
+                onClick={onClose}
+                title={
+                  collapsed
+                    ? "Users"
+                    : undefined
+                }
+                className={({ isActive }) =>
+                  `
+                  group flex h-11 items-center rounded-xl px-3
+                  font-inter text-sm font-medium transition-all
+                  ${
+                    isActive
+                      ? "bg-[#F5F8FE] text-[#266DF0]"
+                      : "text-[#555E67] hover:bg-[#F5F8FE] hover:text-[#266DF0]"
+                  }
+                  ${
+                    collapsed
+                      ? "justify-center"
+                      : "gap-3"
+                  }
+                  `
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <ShieldCheck
+                      size={19}
+                      strokeWidth={
+                        isActive ? 2.2 : 1.9
+                      }
+                      className="shrink-0"
+                    />
+
+                    {!collapsed && (
+                      <span>Users</span>
+                    )}
+
+                    {!collapsed &&
+                      isActive && (
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#266DF0]" />
+                      )}
+                  </>
+                )}
+              </NavLink>
+            </div>
+          )}
         </nav>
 
         {/* Bottom */}
-        <div className="border-t border-[#EDEEF0] p-3">
 
+        <div className="border-t border-[#EDEEF0] p-3">
           {/* Settings */}
+
           <NavLink
             to="/settings"
             title={
-              collapsed ? "Settings" : undefined
+              collapsed
+                ? "Settings"
+                : undefined
             }
             className={({ isActive }) =>
               `
@@ -245,14 +338,21 @@ function Sidebar({
           >
             <Settings size={19} />
 
-            {!collapsed && <span>Settings</span>}
+            {!collapsed && (
+              <span>Settings</span>
+            )}
           </NavLink>
 
           {/* Logout */}
+
           <button
             type="button"
             onClick={handleLogout}
-            title={collapsed ? "Logout" : undefined}
+            title={
+              collapsed
+                ? "Logout"
+                : undefined
+            }
             className={`
               mt-1 flex h-11 w-full items-center rounded-xl px-3
               font-inter text-sm font-medium text-[#555E67]
@@ -266,11 +366,14 @@ function Sidebar({
           >
             <LogOut size={19} />
 
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && (
+              <span>Logout</span>
+            )}
           </button>
         </div>
 
         {/* Collapse */}
+
         <button
           type="button"
           onClick={onToggle}
