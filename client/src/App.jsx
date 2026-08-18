@@ -1,11 +1,20 @@
+import { Navigate, Route, Routes } from "react-router-dom";
+import Login from "./pages/auth/Login";
+import Dashboard from "./pages/dashboard/Dashboard";
+import DashboardLayout from "./layouts/DashboardLayout";
+
 function App() {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-white">
-        CRM Sales Management System
-      </h1>
-    </div>
-  )
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      <Route path="/login" element={<Login />} />
+
+      <Route element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Route>
+    </Routes>
+  );
 }
 
-export default App
+export default App;
