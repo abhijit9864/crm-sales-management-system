@@ -13,6 +13,8 @@ const leadRoutes = require("./routes/leadRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const dealRoutes = require("./routes/dealRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+
 // Middleware
 app.use(
   cors({
@@ -32,6 +34,7 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/deals", dealRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
