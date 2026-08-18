@@ -43,6 +43,7 @@ function Deals() {
   const [deals, setDeals] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState("");
@@ -107,6 +108,18 @@ function Deals() {
   };
 
   useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+
+      if (storedUser) {
+        setCurrentUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Failed to load current user:", error);
+    }
+  }, []);
+
+  useEffect(() => {
     loadDeals();
   }, [search, stage]);
 
@@ -168,13 +181,22 @@ function Deals() {
       setSaving(true);
       setError("");
 
+      if (
+        editingDeal &&
+        (editingDeal.stage === "Closed Won" ||
+          editingDeal.stage === "Closed Lost") &&
+        form.stage !== editingDeal.stage
+      ) {
+        setError("Closed deals cannot be moved to another stage.");
+        return;
+      }
+
       const payload = {
         title: form.title.trim(),
         customer: form.customer,
         value: Number(form.value),
         stage: form.stage,
-        expectedCloseDate:
-          form.expectedCloseDate || undefined,
+        expectedCloseDate: form.expectedCloseDate || undefined,
         notes: form.notes.trim(),
       };
 
@@ -187,7 +209,11 @@ function Deals() {
       closeForm();
       await loadDeals();
     } catch (err) {
-      setError(err.message || "Failed to save deal");
+      if (err.status === 409) {
+        setError(err.message || "This deal cannot be moved to another stage.");
+      } else {
+        setError(err.message || "Failed to save deal");
+      }
     } finally {
       setSaving(false);
     }
@@ -212,19 +238,20 @@ function Deals() {
   // ======================================================
 
   const handleDelete = async (deal) => {
-    const confirmed = window.confirm(
-      `Delete "${deal.title}"?`
-    );
+    const confirmed = window.confirm(`Delete "${deal.title}"?`);
 
     if (!confirmed) return;
 
     try {
       setError("");
-
       await deleteDeal(deal._id);
-
       await loadDeals();
     } catch (err) {
+      if (err.status === 403) {
+        setError(err.message || "You are not authorized to delete this deal.");
+        return;
+      }
+
       setError(err.message || "Failed to delete deal");
     }
   };
@@ -234,6 +261,11 @@ function Deals() {
   // ======================================================
 
   const openAssign = (deal) => {
+    if (!canAssign) {
+      setError("Only Admin and Sales Manager can assign deals.");
+      return;
+    }
+
     setSelectedDeal(deal);
     setAssignedTo(deal.assignedTo?._id || "");
     setShowAssign(true);
@@ -263,7 +295,11 @@ function Deals() {
       closeAssign();
       await loadDeals();
     } catch (err) {
-      setError(err.message || "Failed to assign deal");
+      if (err.status === 403) {
+        setError(err.message || "You are not authorized to assign this deal.");
+      } else {
+        setError(err.message || "Failed to assign deal");
+      }
     } finally {
       setSaving(false);
     }
@@ -281,6 +317,17 @@ function Deals() {
     [users]
   );
 
+  const canAssign =
+    currentUser?.role === "ADMIN" ||
+    currentUser?.role === "SALES_MANAGER";
+
+  const canDelete = currentUser?.role === "ADMIN";
+
+  const canEdit =
+    currentUser?.role === "ADMIN" ||
+    currentUser?.role === "SALES_MANAGER" ||
+    currentUser?.role === "SALES_EXECUTIVE";
+
   // ======================================================
   // HELPERS
   // ======================================================
@@ -294,7 +341,7 @@ function Deals() {
   };
 
   const formatDate = (date) => {
-    if (!date) return "—";
+    if (!date) return "â€”";
 
     return new Date(date).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -479,7 +526,7 @@ function Deals() {
 
                     <td className="px-5 py-4">
                       <p className="font-inter text-sm font-medium text-[#232529]">
-                        {deal.customer?.name || "—"}
+                        {deal.customer?.name || "â€”"}
                       </p>
 
                       <p className="mt-1 font-inter text-xs text-[#9CA1AA]">
@@ -544,38 +591,38 @@ function Deals() {
                           <Eye size={17} />
                         </button>
 
-                        <button
-                          type="button"
-                          title="Edit"
-                          onClick={() =>
-                            openEdit(deal)
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#555E67] hover:bg-[#F5F8FE] hover:text-[#266DF0]"
-                        >
-                          <Edit3 size={16} />
-                        </button>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            title="Edit"
+                            onClick={() => openEdit(deal)}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#555E67] hover:bg-[#F5F8FE] hover:text-[#266DF0]"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                        )}
 
-                        <button
-                          type="button"
-                          title="Assign"
-                          onClick={() =>
-                            openAssign(deal)
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#555E67] hover:bg-[#F5F8FE] hover:text-[#266DF0]"
-                        >
-                          <UserPlus size={17} />
-                        </button>
+                        {canAssign && (
+                          <button
+                            type="button"
+                            title="Assign"
+                            onClick={() => openAssign(deal)}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#555E67] hover:bg-[#F5F8FE] hover:text-[#266DF0]"
+                          >
+                            <UserPlus size={17} />
+                          </button>
+                        )}
 
-                        <button
-                          type="button"
-                          title="Delete"
-                          onClick={() =>
-                            handleDelete(deal)
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#9CA1AA] hover:bg-red-50 hover:text-red-500"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            title="Delete"
+                            onClick={() => handleDelete(deal)}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#9CA1AA] hover:bg-red-50 hover:text-red-500"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -661,7 +708,7 @@ function Deals() {
                       >
                         {customer.name}
                         {customer.company
-                          ? ` — ${customer.company}`
+                          ? ` â€” ${customer.company}`
                           : ""}
                       </option>
                     ))}
@@ -697,6 +744,11 @@ function Deals() {
                     name="stage"
                     value={form.stage}
                     onChange={handleChange}
+                    disabled={
+                      !!editingDeal &&
+                      (editingDeal.stage === "Closed Won" ||
+                        editingDeal.stage === "Closed Lost")
+                    }
                     className="h-11 w-full rounded-xl border border-[#EDEEF0] bg-white px-4 font-inter text-sm outline-none focus:border-[#B3CCFA] focus:ring-4 focus:ring-[#D9E5FC]"
                   >
                     {STAGES.map((item) => (
@@ -798,7 +850,7 @@ function Deals() {
                 </p>
 
                 <p className="mt-1 font-inter text-sm font-semibold text-[#232529]">
-                  {selectedDeal.customer?.name || "—"}
+                  {selectedDeal.customer?.name || "â€”"}
                 </p>
               </div>
 
@@ -808,7 +860,7 @@ function Deals() {
                 </p>
 
                 <p className="mt-1 font-inter text-sm font-semibold text-[#232529]">
-                  {selectedDeal.customer?.company || "—"}
+                  {selectedDeal.customer?.company || "â€”"}
                 </p>
               </div>
 
@@ -818,9 +870,27 @@ function Deals() {
                 </p>
 
                 <p className="mt-1 font-inter text-sm font-semibold text-[#232529]">
-                  {formatCurrency(
-                    selectedDeal.value
-                  )}
+                  {formatCurrency(selectedDeal.value)}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-inter text-xs text-[#9CA1AA]">
+                  Probability
+                </p>
+
+                <p className="mt-1 font-inter text-sm font-semibold text-[#232529]">
+                  {selectedDeal.probability ?? 0}%
+                </p>
+              </div>
+
+              <div>
+                <p className="font-inter text-xs text-[#9CA1AA]">
+                  Expected Revenue
+                </p>
+
+                <p className="mt-1 font-inter text-sm font-semibold text-[#232529]">
+                  {formatCurrency(selectedDeal.expectedRevenue)}
                 </p>
               </div>
 
@@ -869,6 +939,49 @@ function Deals() {
                 <p className="mt-1 whitespace-pre-wrap font-inter text-sm text-[#555E67]">
                   {selectedDeal.notes || "No notes"}
                 </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <p className="font-inter text-xs text-[#9CA1AA]">
+                  Stage History
+                </p>
+
+                {!selectedDeal.stageHistory?.length ? (
+                  <p className="mt-2 font-inter text-sm text-[#9CA1AA]">
+                    No stage history available.
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {selectedDeal.stageHistory.map((history) => (
+                      <div
+                        key={history._id}
+                        className="rounded-xl border border-[#EDEEF0] bg-[#FAFBFC] p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-inter text-sm font-semibold text-[#232529]">
+                            {history.fromStage
+                              ? `${history.fromStage} → ${history.toStage}`
+                              : history.toStage}
+                          </p>
+
+                          <span className="font-inter text-xs text-[#9CA1AA]">
+                            {formatDate(history.changedAt)}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 font-inter text-xs text-[#9CA1AA]">
+                          Changed by {history.changedBy?.name || "Unknown user"}
+                        </p>
+
+                        {history.note && (
+                          <p className="mt-2 font-inter text-xs text-[#555E67]">
+                            {history.note}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -935,7 +1048,7 @@ function Deals() {
                     key={user._id}
                     value={user._id}
                   >
-                    {user.name} — {user.email}
+                    {user.name} â€” {user.email}
                   </option>
                 ))}
               </select>

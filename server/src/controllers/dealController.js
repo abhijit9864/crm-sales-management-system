@@ -7,18 +7,34 @@ const {
   assignDeal,
 } = require("../services/dealService");
 
+// =========================================================
+// CREATE DEAL
+// =========================================================
+
 const create = async (req, res) => {
   try {
-    const { title, customer, value } = req.body;
+    const {
+      title,
+      customer,
+      value,
+    } = req.body;
 
-    if (!title || !customer || value === undefined) {
+    if (
+      !title ||
+      !customer ||
+      value === undefined
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Title, customer and value are required",
+        message:
+          "Title, customer and value are required",
       });
     }
 
-    const deal = await createDeal(req.body, req.user._id);
+    const deal = await createDeal(
+      req.body,
+      req.user._id
+    );
 
     return res.status(201).json({
       success: true,
@@ -26,14 +42,58 @@ const create = async (req, res) => {
       deal,
     });
   } catch (error) {
-    if (error.message === "Customer not found") {
+    // Customer does not exist
+    if (
+      error.message ===
+      "Customer not found"
+    ) {
       return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
 
-    console.error("Create deal error:", error);
+    // Invalid probability
+    if (
+      error.message ===
+      "Probability must be between 0 and 100"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Invalid stage
+    if (
+      error.message ===
+      "Invalid deal stage"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // Mongoose validation
+    if (
+      error.name === "ValidationError"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: Object.values(
+          error.errors
+        ).map(
+          (err) => err.message
+        ),
+      });
+    }
+
+    console.error(
+      "Create deal error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -42,24 +102,9 @@ const create = async (req, res) => {
   }
 };
 
-// const getAll = async (req, res) => {
-//   try {
-//     const deals = await getDeals(req.user);
-
-//     return res.status(200).json({
-//       success: true,
-//       count: deals.length,
-//       deals,
-//     });
-//   } catch (error) {
-//     console.error("Get deals error:", error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to fetch deals",
-//     });
-//   }
-// };
+// =========================================================
+// GET ALL DEALS
+// =========================================================
 
 const getAll = async (req, res) => {
   try {
@@ -71,10 +116,24 @@ const getAll = async (req, res) => {
     return res.status(200).json({
       success: true,
       deals: result.deals,
-      pagination: result.pagination,
+      pagination:
+        result.pagination,
     });
   } catch (error) {
-    console.error("Get deals error:", error);
+    if (
+      error.message ===
+      "Invalid deal stage"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(
+      "Get deals error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -83,7 +142,14 @@ const getAll = async (req, res) => {
   }
 };
 
-const getOne = async (req, res) => {
+// =========================================================
+// GET SINGLE DEAL
+// =========================================================
+
+const getOne = async (
+  req,
+  res
+) => {
   try {
     const deal = await getDealById(
       req.params.id,
@@ -95,19 +161,33 @@ const getOne = async (req, res) => {
       deal,
     });
   } catch (error) {
+    // Not found
     if (
-      error.message === "Deal not found" ||
-      error.message.includes("not authorized")
+      error.message ===
+      "Deal not found"
     ) {
-      return res.status(
-        error.message === "Deal not found" ? 404 : 403
-      ).json({
+      return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
 
-    console.error("Get deal error:", error);
+    // Permission
+    if (
+      error.message.includes(
+        "not authorized"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(
+      "Get deal error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -116,43 +196,14 @@ const getOne = async (req, res) => {
   }
 };
 
-// const update = async (req, res) => {
-//   try {
-//     const deal = await updateDeal(
-//       req.params.id,
-//       req.body,
-//       req.user
-//     );
+// =========================================================
+// UPDATE DEAL
+// =========================================================
 
-//     return res.status(200).json({
-//       success: true,
-//       message: "Deal updated successfully",
-//       deal,
-//     });
-//   } catch (error) {
-//     if (
-//       error.message === "Deal not found" ||
-//       error.message.includes("not authorized")
-//     ) {
-//       return res.status(
-//         error.message === "Deal not found" ? 404 : 403
-//       ).json({
-//         success: false,
-//         message: error.message,
-//       });
-//     }
-
-//     console.error("Update deal error:", error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to update deal",
-//     });
-//   }
-// };
-
-
-const update = async (req, res) => {
+const update = async (
+  req,
+  res
+) => {
   try {
     const deal = await updateDeal(
       req.params.id,
@@ -162,16 +213,28 @@ const update = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Deal updated successfully",
+      message:
+        "Deal updated successfully",
       deal,
     });
   } catch (error) {
-    if (error.message === "Deal not found") {
+    // -----------------------------------------------------
+    // Deal not found
+    // -----------------------------------------------------
+
+    if (
+      error.message ===
+      "Deal not found"
+    ) {
       return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
+
+    // -----------------------------------------------------
+    // Authorization
+    // -----------------------------------------------------
 
     if (
       error.message ===
@@ -183,6 +246,10 @@ const update = async (req, res) => {
       });
     }
 
+    // -----------------------------------------------------
+    // Closed deal rule
+    // -----------------------------------------------------
+
     if (
       error.message ===
       "Closed deals cannot be moved to another stage"
@@ -193,18 +260,70 @@ const update = async (req, res) => {
       });
     }
 
-    // Mongoose validation errors
-    if (error.name === "ValidationError") {
+    // -----------------------------------------------------
+    // Probability validation
+    // -----------------------------------------------------
+
+    if (
+      error.message ===
+      "Probability must be between 0 and 100"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // -----------------------------------------------------
+    // Deal value validation
+    // -----------------------------------------------------
+
+    if (
+      error.message ===
+      "Deal value cannot be negative"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // -----------------------------------------------------
+    // Stage validation
+    // -----------------------------------------------------
+
+    if (
+      error.message ===
+      "Invalid deal stage"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // -----------------------------------------------------
+    // Mongoose validation
+    // -----------------------------------------------------
+
+    if (
+      error.name === "ValidationError"
+    ) {
       return res.status(400).json({
         success: false,
         message: "Validation failed",
-        errors: Object.values(error.errors).map(
+        errors: Object.values(
+          error.errors
+        ).map(
           (err) => err.message
         ),
       });
     }
 
-    console.error("Update deal error:", error);
+    console.error(
+      "Update deal error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -213,45 +332,80 @@ const update = async (req, res) => {
   }
 };
 
+// =========================================================
+// DELETE DEAL
+// =========================================================
 
-const remove = async (req, res) => {
+const remove = async (
+  req,
+  res
+) => {
   try {
-    await deleteDeal(req.params.id, req.user);
+    await deleteDeal(
+      req.params.id,
+      req.user
+    );
 
     return res.status(200).json({
       success: true,
-      message: "Deal deleted successfully",
+      message:
+        "Deal deleted successfully",
     });
   } catch (error) {
+    // Deal not found
     if (
-      error.message === "Deal not found" ||
-      error.message.includes("not authorized")
+      error.message ===
+      "Deal not found"
     ) {
-      return res.status(
-        error.message === "Deal not found" ? 404 : 403
-      ).json({
+      return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
 
-    console.error("Delete deal error:", error);
+    // Permission
+    if (
+      error.message.includes(
+        "not authorized"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(
+      "Delete deal error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete deal",
+      message:
+        "Failed to delete deal",
     });
   }
 };
 
-const assign = async (req, res) => {
+// =========================================================
+// ASSIGN DEAL
+// =========================================================
+
+const assign = async (
+  req,
+  res
+) => {
   try {
-    const { assignedTo } = req.body;
+    const {
+      assignedTo,
+    } = req.body;
 
     if (!assignedTo) {
       return res.status(400).json({
         success: false,
-        message: "assignedTo is required",
+        message:
+          "assignedTo is required",
       });
     }
 
@@ -263,35 +417,85 @@ const assign = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Deal assigned successfully",
+      message:
+        "Deal assigned successfully",
       deal,
     });
   } catch (error) {
+    // -----------------------------------------------------
+    // Deal not found
+    // -----------------------------------------------------
+
     if (
-      error.message === "Deal not found" ||
-      error.message === "Assigned user not found" ||
-      error.message.includes("not authorized") ||
-      error.message.includes("only be assigned")
+      error.message ===
+      "Deal not found"
     ) {
-      return res.status(
-        error.message === "Deal not found" ||
-        error.message === "Assigned user not found"
-          ? 404
-          : 403
-      ).json({
+      return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
 
-    console.error("Assign deal error:", error);
+    // -----------------------------------------------------
+    // Assigned user not found
+    // -----------------------------------------------------
+
+    if (
+      error.message ===
+      "Assigned user not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // -----------------------------------------------------
+    // Authorization
+    // -----------------------------------------------------
+
+    if (
+      error.message.includes(
+        "not authorized"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // -----------------------------------------------------
+    // Only Sales Executives can receive deals
+    // -----------------------------------------------------
+
+    if (
+      error.message.includes(
+        "only be assigned"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(
+      "Assign deal error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to assign deal",
+      message:
+        "Failed to assign deal",
     });
   }
 };
+
+// =========================================================
+// EXPORT
+// =========================================================
 
 module.exports = {
   create,
